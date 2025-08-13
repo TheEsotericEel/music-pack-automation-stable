@@ -2,20 +2,27 @@
 __pycache__/
 *.pyc
 .env
-.venv
+.venv/
 venv/
 build/
 dist/
 *.egg-info/
+
 # VSCode
 .vscode/
+
 # OS
 .DS_Store
 Thumbs.db
-# Local outputs
-dist/
+
 # Logs/tmp
 *_tmp/
-.mp3
-.mp4
-.wav
+
+# Local outputs
+dist/
+inbox/
+
+# Audio/video outputs
+*.mp3
+*.wav
+*.mp4
