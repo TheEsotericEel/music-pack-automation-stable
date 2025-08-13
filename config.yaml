@@ -4,6 +4,29 @@ make_wav: true
 make_mp3: true
 preview_per_track_sec: 10
 output_root: "dist"
-video_res: "1280x720"
+video_res: "1920x1080"
 bitrate_mp3: "320k"
 wav_bit_depth: 24
+
+# set false if you don't want to upload
+upload_to_youtube: true
+# public | unlisted | private    
+youtube_privacy: "unlisted"
+youtube_client_secret: "client_secret1.json"
+youtube_tags:
+  - royalty free
+  - preview
+  - music pack
+  - tiktok live
+  - streaming
+  - copyright free
+
+# --- Preview video quality controls ---
+preview_crf: 20              
+# lower = higher quality (e.g., 18–23 range)
+preview_preset: "veryfast"   
+# slower presets = better compression (slow, medium, fast, veryfast, etc.)
+preview_max_size_mb: 10000
+# size budget used for mux step (video+audio)
+
+# preview_mux_video_kbps: 4500   # OPTIONAL hard override for video bitrate during mux; omit to auto-calc from size cap
