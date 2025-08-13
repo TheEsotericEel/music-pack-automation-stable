@@ -1,0 +1,9 @@
+# Fixed defaults (edit as needed)
+sku_prefix: "PK"
+make_wav: true
+make_mp3: true
+preview_per_track_sec: 10
+output_root: "dist"
+video_res: "1280x720"
+bitrate_mp3: "320k"
+wav_bit_depth: 24

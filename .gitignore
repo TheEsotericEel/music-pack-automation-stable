@@ -1,0 +1,21 @@
+﻿# Python
+__pycache__/
+*.pyc
+.env
+.venv
+venv/
+build/
+dist/
+*.egg-info/
+# VSCode
+.vscode/
+# OS
+.DS_Store
+Thumbs.db
+# Local outputs
+dist/
+# Logs/tmp
+*_tmp/
+.mp3
+.mp4
+.wav
