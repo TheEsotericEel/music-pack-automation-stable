@@ -6,7 +6,7 @@ from .names import load_name_list, next_random_name
 from .preview import build_smart_snips, render_preview_video, mux_preview
 from .audio import crossfade_sequence
 from .utils import sh
-
+from packmaker.utils import zip_without_sku
 def main():
     need("ffmpeg")
     ROOT = Path.cwd().resolve()
@@ -95,6 +95,9 @@ def main():
     mix_mp3 = mix_dir / "mix.mp3"
     crossfade_sequence(tracks, mix_mp3, xfade_d=2.0, codec="libmp3lame", bitrate=CONF.get("bitrate_mp3","320k"),
                        inter_codec="pcm_s16le", threads=4, filter_threads=2)
+
+    zip_file = zip_without_sku(pack_dir)
+    print(f"Zipped pack to: {zip_file}")
 
     shutil.rmtree(tmp_dir, ignore_errors=True)
     print("\n== DONE ==")

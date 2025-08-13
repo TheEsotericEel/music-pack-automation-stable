@@ -10,12 +10,16 @@ def build_smart_snips(sources, out_dir: Path, sec: int):
     for i, s in enumerate(sources, 1):
         start = find_energy_peak_start(s, float(sec))
         snip = out_dir / f"snip_{i:02d}.m4a"
-        sh(f'ffmpeg -y -hide_banner -loglevel error -ss {start:.3f} -i "{s}" -t {sec} -vn -sn -dn -c:a aac -b:a 192k -threads 4 "{snip}"')
+        sh(f'ffmpeg -y -hide_banner -loglevel error -ss {start:.3f} -i "{s}" -t {sec} '
+           f'-vn -sn -dn -c:a aac -b:a 192k -threads 4 "{snip}"')
         snips.append(snip)
         starts.append(start)
     return snips, starts
 
-def render_preview_video(bg_path: Path, tmp_dir: Path, video_res: str, fps: int, total_d_video: float, N: int, slot: float, preview_sec: float, xfade_preview: float, amf_available: bool) -> Path:
+def render_preview_video(bg_path: Path, tmp_dir: Path, video_res: str, fps: int,
+                         total_d_video: float, N: int, slot: float, preview_sec: float,
+                         xfade_preview: float, amf_available: bool,
+                         pack_title: str = "") -> Path:
     concat_list = None
     if bg_path.exists():
         try:
@@ -34,41 +38,57 @@ def render_preview_video(bg_path: Path, tmp_dir: Path, video_res: str, fps: int,
         bg_in = f'-f lavfi -i "color=c=black:s={video_res}:r={fps}:d={total_d_video}"'
         first_stage = "[0:v]setsar=1[v0]"
 
-    # time-windowed number overlays
     draws = []
     prev = "v0"
     raw_font = windows_fontfile()
     font_path = ffmpeg_escape_fontfile(raw_font)
+
+    # Draw title first (static, always on screen)
+    if pack_title.strip():
+        draws.append(
+            f'[{prev}]drawtext=fontfile=\'{font_path}\':text=\'{pack_title}\':'
+            f'fontcolor=white:borderw=6:bordercolor=black:fontsize=80:'
+            f'x=40:y=40[{prev}_title]'  # top-left safe zone
+        )
+        prev = f"{prev}_title"
+
+    # Then draw numbers in time slots (centered)
     for idx in range(N):
         start = round(idx * slot, 6)
-        end   = round(start + preview_sec - xfade_preview - 0.02, 6)
+        end = round(start + preview_sec - xfade_preview - 0.02, 6)
         label = f"{idx+1:02d}"
         nxt = f"v{idx+1}"
         draws.append(
-            f'[{prev}]drawtext=fontfile=\'{font_path}\':text=\'{label}\':fontcolor=white:borderw=6:'
-            f'bordercolor=black:fontsize=200:x=(w-tw)/2:y=(h-th)/2:enable=between(t\\,{start}\\,{end})[{nxt}]'
+            f'[{prev}]drawtext=fontfile=\'{font_path}\':text=\'{label}\':'
+            f'fontcolor=white:borderw=6:bordercolor=black:fontsize=200:'
+            f'x=(w-tw)/2:y=(h-th)/2:enable=between(t\\,{start}\\,{end})[{nxt}]'
         )
         prev = nxt
+
 
     filter_chain = ";".join([first_stage] + draws + [f"[{prev}]format=yuv420p[out]"])
     video_full = tmp_dir / "preview_video_full.mp4"
 
-    vcodec_build = ('-c:v h264_amf -quality speed -usage transcoding -rc cqp -qp_i 23 -qp_p 23 -g 240 -pix_fmt yuv420p'
-                    if amf_available else
-                    '-c:v libx264 -preset veryfast -tune fastdecode -pix_fmt yuv420p')
+    vcodec_build = (
+        '-c:v h264_amf -quality speed -usage transcoding -rc cqp -qp_i 23 -qp_p 23 '
+        '-g 240 -pix_fmt yuv420p'
+        if amf_available else
+        '-c:v libx264 -preset veryfast -tune fastdecode -pix_fmt yuv420p'
+    )
 
     cmd = (
         f'ffmpeg -y -hide_banner -loglevel error {bg_in} '
-        f'-filter_complex "{filter_chain}" -map "[out]" -t {total_d_video} -r {fps} {vcodec_build} '
-        f'-threads 4 "{video_full}"'
+        f'-filter_complex "{filter_chain}" -map "[out]" -t {total_d_video} '
+        f'-r {fps} {vcodec_build} -threads 4 "{video_full}"'
     )
     try:
         sh(cmd)
     except subprocess.CalledProcessError:
         sh(
             f'ffmpeg -y -hide_banner -loglevel error {bg_in} '
-            f'-filter_complex "{filter_chain}" -map "[out]" -t {total_d_video} -r {fps} '
-            f'-c:v libx264 -preset veryfast -tune fastdecode -pix_fmt yuv420p -threads 4 "{video_full}"'
+            f'-filter_complex "{filter_chain}" -map "[out]" -t {total_d_video} '
+            f'-r {fps} -c:v libx264 -preset veryfast -tune fastdecode '
+            f'-pix_fmt yuv420p -threads 4 "{video_full}"'
         )
     return video_full
 
@@ -83,6 +103,7 @@ def mux_preview(video_full: Path, preview_audio: Path, out_path: Path, total_d_v
     sh(
         f'ffmpeg -y -hide_banner -loglevel error -i "{video_full}" -i "{preview_audio}" '
         f'-map 0:v -map 1:a '
-        f'-c:v libx264 -b:v {target_video_kbps}k -maxrate {target_video_kbps}k -bufsize {target_video_kbps*2}k '
-        f'-c:a aac -b:a {audio_kbps}k -movflags +faststart -shortest "{out_path}"'
+        f'-c:v libx264 -b:v {target_video_kbps}k -maxrate {target_video_kbps}k '
+        f'-bufsize {target_video_kbps*2}k -c:a aac -b:a {audio_kbps}k '
+        f'-movflags +faststart -shortest "{out_path}"'
     )

@@ -1,5 +1,15 @@
 ﻿import sys, json, shutil, subprocess, datetime
 from pathlib import Path
+import shutil
+from pathlib import Path
+
+def zip_without_sku(folder_path: Path):
+    """Create a ZIP of the given folder, omitting SKU from the archive name."""
+    # Example: "MyPackName_PK-123456" → "MyPackName"
+    clean_name = folder_path.name.split("_PK-")[0]
+    zip_path = folder_path.parent / clean_name
+    shutil.make_archive(str(zip_path), 'zip', root_dir=folder_path)
+    return zip_path.with_suffix(".zip")
 
 def sh(cmd, check=True):
     print(">", cmd)
